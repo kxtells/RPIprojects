@@ -46,10 +46,14 @@ def get_url(url):
     parsed_json = json.loads(json_string)
     return parsed_json
 
-def get_today_pop(dataset):
+def url_string(service):
+    return "http://api.wunderground.com/api/%s/%s/q/%s.json" % (APIKEY, service, PLACE)
+
+def get_today_pop():
     """Get the Probability of Precipitation for the current day, given
-    the result set
+    the result set. This is using the "forecast" service
     """
+    dataset = get_url(url_string("forecast"))
     return int(dataset['forecast']['txt_forecast']['forecastday'][0]['pop'])
 
 def board_clean_up():
@@ -99,7 +103,7 @@ def update_weather_and_led():
     light the led or not, according to the value MINPOP
     """
     logging.info("Retreiving weather information")
-    pop = get_today_pop(get_url(URL))
+    pop = get_today_pop()
 
     if pop > MINPOP:
         led_on()
