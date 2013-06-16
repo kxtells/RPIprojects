@@ -29,9 +29,7 @@ import datetime
 #CONFIGURATION
 #Your Weather Underground API KEY HERE
 APIKEY  = ""
-SERVICE = "forecast"
 PLACE   = "UK/Cambridge"
-URL     = "http://api.wunderground.com/api/%s/%s/q/%s.json" % (APIKEY, SERVICE, PLACE)
 
 MINPOP  = 30
 LEDPIN  = 7
@@ -47,6 +45,7 @@ def get_url(url):
     return parsed_json
 
 def url_string(service):
+    """Generate a string for a weather underground service"""
     return "http://api.wunderground.com/api/%s/%s/q/%s.json" % (APIKEY, service, PLACE)
 
 def get_today_pop():
@@ -55,6 +54,15 @@ def get_today_pop():
     """
     dataset = get_url(url_string("forecast"))
     return int(dataset['forecast']['txt_forecast']['forecastday'][0]['pop'])
+
+def get_pop_coming_12_hours():
+    """Return a list of the pop for the coming 12 hours.
+    using the "hourly" service
+    """
+    dataset = get_url(url_string("hourly"))
+    dataset["hourly_forecast"][0]["pop"]
+    pops = [int(d["pop"]) for d in dataset["hourly_forecast"]]
+    return pops[0:11]
 
 def board_clean_up():
     GPIO.cleanup()
@@ -103,7 +111,7 @@ def update_weather_and_led():
     light the led or not, according to the value MINPOP
     """
     logging.info("Retreiving weather information")
-    pop = get_today_pop()
+    pop = max(get_pop_coming_12_hours())
 
     if pop > MINPOP:
         led_on()
@@ -112,13 +120,12 @@ def update_weather_and_led():
 
     logging.info("Pop: %s MinPop: %s",pop,MINPOP)
 
-
 def main():
     script_set_up()
     board_set_up()
     update = True
     now = datetime.datetime.now()
-    cday = now.day
+    chour = now.hour
 
     while True:
         # Update handling
@@ -132,9 +139,9 @@ def main():
             update = True
 
         now = datetime.datetime.now()
-        if now.day != cday:
+        if now.hour != chour:
             update = True
-            cday   = now.day
+            chour  = now.hour
 
         # Wait for next loop
         time.sleep(0.5)
